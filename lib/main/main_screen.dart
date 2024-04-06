@@ -14,10 +14,10 @@ class MainScreen extends StatefulWidget {
   final String? characterImage;
   final String? backgroundImage;
 
+
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
-
 class _MainScreenState extends State<MainScreen> {
   late String _currentCharacterImage;
   late String _currentBackgroundImage;
