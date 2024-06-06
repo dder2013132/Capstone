@@ -66,46 +66,31 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void updateExp(int exp) {
+  void updateExp(int exp) async {
     setState(() {
       _exp = exp;
-      int newLevel = LevelManager.calculateLevel(_exp);
-      if (newLevel != _level) {
-        _level = newLevel;
-        _updateUserLevel(_level);
-      }
     });
-    _updateUserExp(_exp);
-  }
-
-  Future<void> _updateUserLevel(int level) async {
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(loggedUser!.uid).update({
-        'level': level,
+    int newLevel = LevelManager.calculateLevel(_exp);
+    if (newLevel != _level) {
+      setState(() {
+        _level = newLevel;
       });
-      debugPrint('Level updated to $level');
-    } catch (e) {
-      debugPrint('Error updating level: $e');
-    }
-  }
-
-  Future<void> _updateUserExp(int exp) async {
-    try {
       await FirebaseFirestore.instance.collection('users').doc(loggedUser!.uid).update({
-        'exp': exp,
+        'level': _level,
+        'exp': _exp,
       });
-      debugPrint('Experience updated to $exp');
-    } catch (e) {
-      debugPrint('Error updating experience: $e');
+    } else {
+      await FirebaseFirestore.instance.collection('users').doc(loggedUser!.uid).update({
+        'exp': _exp,
+      });
     }
+    fetchUserData(); // 업데이트 후 데이터를 다시 가져와서 확인
   }
-
 
   Future<List<Plan>> getPlansFromFirestore() async {
     final userEmail = loggedUser?.email;
     if (userEmail != null) {
-      final querySnapshot =
-      await FirebaseFirestore.instance.collection(userEmail).get();
+      final querySnapshot = await FirebaseFirestore.instance.collection(userEmail).get();
       return querySnapshot.docs.map((doc) => Plan.fromJson(doc.data())).toList();
     }
     return [];
@@ -114,6 +99,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     double progress = LevelManager.getProgressToNextLevel(_exp);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     return MaterialApp(
       home: Scaffold(
@@ -121,8 +108,8 @@ class _MainScreenState extends State<MainScreen> {
           child: Column(
             children: <Widget>[
               Container(
-                width: 440,
-                height: 740,
+                width: screenWidth * 0.9,
+                height: screenHeight * 0.9,
                 decoration: BoxDecoration(
                   image: DecorationImage(
                     image: AssetImage(_currentBackgroundImage),
@@ -133,8 +120,14 @@ class _MainScreenState extends State<MainScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Center(
-                      child: Image.asset(_currentCharacterImage),
+                      child: Image.asset(
+                        _currentCharacterImage,
+                        height: screenHeight * 0.3,
+                        width: screenWidth * 0.5,
+                        fit: BoxFit.contain,
+                      ),
                     ),
+                    SizedBox(height: screenHeight * 0.02),
                     Text(
                       'Exp: $_exp',
                       style: const TextStyle(fontSize: 20, color: Colors.white),
@@ -147,30 +140,31 @@ class _MainScreenState extends State<MainScreen> {
                       'Level: $_level',
                       style: const TextStyle(fontSize: 40, color: Colors.white),
                     ),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            color: Colors.amber,
-                          ),
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: LinearProgressIndicator(
-                                value: progress,
-                                backgroundColor: Colors.grey[500],
-                                valueColor:
-                                const AlwaysStoppedAnimation<Color>(
-                                    Colors.blue),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                            ),
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  backgroundColor: Colors.grey[500],
+                                  valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
